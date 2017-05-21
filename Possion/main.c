@@ -1,32 +1,158 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include<stdio.h>
 #include<stdbool.h>
-#include<math.h>
 #include<stdlib.h>
+#include<string.h>
 
-int* get_bottles();
-bool check(int a, int b, int c); //检测三次输入瓶子数量是否相等
-bool equal(int *iniVolume, int *demandVolume); //检测初始状态是否与最终状态相同了
+bool check(int a, int b, int c);
+int * get_bottles();
+void move(int *start,int count);
+void addPath(int *from);
+bool contain(int *get);
 
-int amount;//设置瓶子数量
-int *maxVolume, *iniVolume, *demandVolume;
+int *max, *start, *end;
+int *path;
+int length=0; //定义路径长度
+
+FILE * fp;
 
 int main() {
 	do {
-		printf("请输入各瓶子最多装酒数量,用空格隔开(例如:1 2 3):\n");
-		maxVolume = get_bottles();
-		printf("请输入各瓶子初始装酒数量,用空格隔开(例如:1 2 3):\n");
-		iniVolume = get_bottles();
-		printf("请输入各瓶子要求装酒数量,用空格隔开(例如:1 2 3):\n");
-		demandVolume = get_bottles();
-	} while (check(maxVolume[0], iniVolume[0], demandVolume[0]));
-	move(iniVolume);
-	free(maxVolume);
-	free(iniVolume);
-	free(demandVolume);
+	printf("请输入各瓶子最多装酒数量,用空格隔开(例如:1 2 3):\n");
+	max = get_bottles();
+	printf("请输入各瓶子初始装酒数量,用空格隔开(例如:1 2 3):\n");
+	start = get_bottles();
+	printf("请输入各瓶子要求装酒数量,用空格隔开(例如:1 2 3):\n");
+	end = get_bottles();
+	} while (check(*max, *start, *end));
+
+	fp = fopen("path.txt", "w+");
+	if (!fp) {
+		printf("打开文件失败");
+	}
+	fclose(fp);
+	/*int max[4] = { 3,12,8,5 };
+	int start[4] = { 3,12,0,0 };
+	int end[4] = { 3,6,6,0 };*/
+
+	move(start,0);
+	free(max);
+	free(start);
+	free(end);
 	system("pause");
 	return 0;
 }
+
+void move(int *start ,int count) {
+	bool isMoved=false;
+	path = (int *)realloc(path,(*start + 1)*(length+1) *sizeof(int));    //*start+3
+	
+
+	addPath(start);
+
+	for (int i = 1; i <= *start; i++) {
+		for (int j = 1; j <= *start; j++) {
+			int a = start[i], b = start[j];      //临时变量,用于存储start[i]和start[j]的值
+			if (i == j) {
+				isMoved = false;
+				continue;
+			}
+			if (start[i] == 0 || start[j] == max[j]) {
+				isMoved = false;
+				continue;
+			}
+			else if(start[i]>=max[j]-start[j]){
+				start[i] -= max[j] - start[j];
+				start[j] = max[j];
+				if (contain(start)) {
+					start[i] = a, start[j] = b;
+					isMoved = false;
+					continue;
+				}
+				else {
+					isMoved = true;
+				}
+			}
+			else {
+				start[j] += start[i];
+				start[i] = 0;
+				if (contain(start)) {
+					start[i] = a, start[j] = b;
+					isMoved = false;
+					continue;
+				}
+				else {
+					isMoved = true;
+				}
+			}
+			if (isMoved) {
+				printf("%d->%d: ", i, j);
+				for (int k = 1; k <= *start; k++) {
+					printf("%d ", start[k]);
+				}
+				printf("\n");
+			}
+
+			fp = fopen("path.txt", "a+");
+			fprintf(fp ,"%d->%d: ", i, j);
+			for (int i = 1; i <= *start; i++) {
+				fprintf(fp, "%d ", start[i]);
+			}
+			fprintf(fp, "\n");
+			fclose(fp);
+
+		}
+	}
+	
+	printf("\n\n\n");
+	/*free(path);
+	path = (int*)malloc(sizeof(int));
+	move(start, 0);
+	count++;
+
+	printf("%d\n",length);*/
+
+}
+
+void addPath(int *from) {
+	for (int i = 0; i <= *from; i++) {
+		path[(*start + 1)*length + i] = from[i];
+	}
+	length++;
+}
+
+bool contain(int *get) {
+	bool mark;
+	for (int i = 0; i < length; i++) {
+		mark = true;
+		for (int j = 1; j <= *get; j++) {
+			if (path[i*(*get + 1) + j] != get[j]) {
+				mark = false;
+				break;
+			}
+		}
+		if (mark) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 int * get_bottles() {
 	int num = 256; //设置读入数据初始容量
@@ -63,7 +189,6 @@ int * get_bottles() {
 
 bool check(int a, int b, int c) {
 	if (a == b&&b == c) {
-		amount = a;
 		return false;
 	}
 	else {
@@ -71,51 +196,3 @@ bool check(int a, int b, int c) {
 		return true;
 	}
 }
-
-bool equal(int *iniVolume, int *demandVolume) {
-	for (int i = 1; i <= amount; i++) {
-		if (iniVolume[i] != demandVolume[i]) {
-			return false;
-		}
-	}
-	return true;
-}
-
-
-void move(int *start, int * path, int pathLength) {
-	path = (int*)realloc(path, (pathLength+1)*(amount + 2) * sizeof(int));
-	
-	if (equal(start, demandVolume)) {
-		printPath();
-	}
-	for (int i = 1; i <= amount; i++) {
-		for (int j = 1; j <= amount; j++) {
-			if (i == j) {
-				continue;
-			}
-			//int* temp = (int*)malloc((amount + 1) * sizeof(int)); //复制start数组
-			//for (int k = 0; k <= amount; k++) {
-			//	temp[k] = start[k];
-			//}
-			if (start[i] == 0 || start[j] == maxVolume[j]) {
-				;
-			}
-			else if ((maxVolume[j] - start[j]) >= start[i]) {
-				start[j] += start[i];
-				start[i] = 0;
-			}
-			else {
-				start[i] -= maxVolume[j] - start[j];
-				start[j] = maxVolume[j];
-			}
-			if (!equal(demandVolume, start)) {
-				move(start);
-			}
-		}
-	}
-}
-
-void printPath() {
-
-}
-
