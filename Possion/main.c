@@ -10,10 +10,11 @@ int move(int *start, int length,int nownum);
 bool contain(int *start, int number, int length);
 bool isequal(int *start, int  *end);
 void printPath();
+bool noRepeat();
 
 
 int path[1024][1024];
-int number = 0;
+int number = 0;  //path的总数
 int *max, *start, *end;
 
 int main() {
@@ -31,6 +32,12 @@ int main() {
 	max = maxm, start = ini, end = dem;
 	goPath(start);
 	printPath();
+	if (noRepeat) {
+		printf("没有重复\n");
+	}
+	else {
+		printf("有重复\n");
+	}
 	system("pause");
 	return 0;
 }
@@ -54,12 +61,12 @@ void goPath(int *start) {
 		if (i == number) {
 			i = 0;
 		}
-		int length = path[number][0];
+		int length = path[i][0];
 		int ini[10];
-		start = &path[number][2 + (length - 1)*(*start + 1)];
+		start = &path[i][2 + (length - 1)*(*start + 1)];
 		memcpy(ini, start, (*start + 1) * sizeof(int));		
-		move(ini, length, path[number][1]);
-		if (number == 13) {
+		move(ini, length, path[i][1]);
+		if (number == 455) {
 			break;
 		}
 	}
@@ -68,7 +75,7 @@ void goPath(int *start) {
 
 }
 
-int move(int *start, int length,int nownum) {
+int move(int *start, int length,int nownum) { //length为当前path的长度,最短为1,nownum为当前path的序号,最小为0
 	int branch = 0;
 
 	for (int i = 1; i <= *start; i++) {
@@ -76,9 +83,9 @@ int move(int *start, int length,int nownum) {
 
 			int a = start[i], b = start[j];
 			if (i == j || start[i] == 0 || start[j] == max[j]) {
-				if (isequal(start, end)) {
+				/*if (isequal(start, end)) {
 					printf("\n移动完成\n");
-				}
+				}*/
 				continue;
 			}
 			else if (start[i] > max[j] - start[j]) {
@@ -159,10 +166,10 @@ bool isequal(int *start, int  *end) {
 }
 
 void printPath() {
-	int numel = path[number][2]; //记录瓶子数
+	int numel = path[number][2];                //记录瓶子数
 	FILE *fp = fopen("path.txt", "w");
-	for (int i = 0; i <= number; i++) {
-		for (int j = 0; j < path[i][0]; j++) {
+	for (int i = 0; i <= number; i++) {         //路径数
+		for (int j = 0; j < path[i][0]; j++) {  //路径长度
 			for (int k = 0; k < numel; k++) {
 				printf("%4d ", path[i][(numel + 1)*j + 3+k]);
 				fprintf(fp, "%4d ", path[i][(numel + 1)*j + 3 + k]);
@@ -174,6 +181,36 @@ void printPath() {
 		fprintf(fp, "\n\n");
 	}
 	fclose(fp);
+}
+
+bool noRepeat() {
+	int numel = path[0][2]+1;
+	bool mark = true;
+	for (int i = 0; i <= number; i++) {
+		for (int j = 0; j <= number; j++) {
+			if (i == j) {
+				continue;
+			}
+			else if (path[i][0] != path[j][0]) {
+				continue;
+			}
+			else {
+				mark = true;
+				int length = path[i][0];
+				for (int k = 2; k < (2 + numel*length); k++) {
+					if (path[i][k] != path[j][k]) {
+						mark = false;
+						break;
+					}
+				}
+				if (mark) {
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 
