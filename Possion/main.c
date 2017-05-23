@@ -1,4 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define MIN_PATH true
+#define MAX_PATH false
 #include<stdio.h>
 #include<stdbool.h>
 #include<stdlib.h>
@@ -8,38 +10,32 @@ void goPath(int *start);
 int addPath(int *start, int temp, int number, int length);
 int move(int *start, int length, int nownum);
 bool contain(int *start, int number, int length);
-bool isequal(int *start, int  *end);
+void printSinPath(int i, FILE* fp);
 void printPath();
+void searchPath(bool set);
 bool noRepeat();
 
 
-int path[1024][512];
-bool markEnd[1024] = { false };  //记录达成要求的路径
-bool endPath[1024] = { false };  //记录一条路径的结束(达到要求或者不管怎么移动都会重复前面的状态)
-int number = 0;                  //path的总数
-int *max, *start, *end;
+int path[4096][1024] = { 0 };
+bool markEnd[4096] = { false };  //记录达成要求的路径
+bool endPath[4096] = { false };  //记录一条路径的结束(达到要求或者不管怎么移动都会重复前面的状态)
+int number = 0;                  //记录path的总数
+int numel = 3;                   //瓶子总数
+
+int max[3] = { 12,8,5 };
+int start[3] = { 12,0,0 };
+int end[3] = { 6,6,0 };
 
 int main() {
-	/*do {
-	printf("请输入各瓶子最多装酒数量,用空格隔开(例如:1 2 3):\n");
-	max = get_bottles();
-	printf("请输入各瓶子初始装酒数量,用空格隔开(例如:1 2 3):\n");
-	start= get_bottles();
-	printf("请输入各瓶子要求装酒数量,用空格隔开(例如:1 2 3):\n");
-	end = get_bottles();
-	} while (check(maxVolume[0], iniVolume[0], demandVolume[0]));*/
-	int maxm[4] = { 3,12,8,5 };
-	int ini[4] = { 3,12,0,0 };
-	int dem[4] = { 3,6,6,0 };
-	max = maxm, start = ini, end = dem;
 	goPath(start);
 	printPath();
-	if (noRepeat) {
-		printf("没有重复\n");
+	if (noRepeat()) {
+		printf("没有重复\n\n");
 	}
 	else {
-		printf("有重复\n");
+		printf("有重复\n\n");
 	}
+	searchPath(MIN_PATH);  //选择输出最长或最短路径
 	system("pause");
 	return 0;
 }
@@ -52,11 +48,11 @@ void goPath(int *start) {
 		int temp = number;
 
 		for (int i = 0; i <= temp; i++) {
-						
+
 			int length = path[i][0];
 			int ini[10];
-			start = &path[i][2 + (length - 1)*(*start + 1)];
-			memcpy(ini, start, (*start + 1) * sizeof(int));
+			start = &path[i][2 + (length - 1)*numel];
+			memcpy(ini, start, numel * sizeof(int));
 			int branch = 0;
 			int nownum = path[i][1];
 			if (endPath[nownum]) {
@@ -70,8 +66,13 @@ void goPath(int *start) {
 			}
 
 		}
+
 		for (int i = 0; i <= temp; i++) {
-			if (endPath[path[i][1]]) {
+			if (endPath[i]) {
+				/*int length = path[i][0] - 1;
+				if (!memcmp(&path[i][numel*length + 2], end, numel * sizeof(int))) {
+					path[i][0] = 0;
+				}*/
 				mark = true;
 			}
 			else {
@@ -86,15 +87,15 @@ void goPath(int *start) {
 int move(int *start, int length, int nownum) { //length为当前path的长度,最短为1,nownum为当前path的序号,最小为0
 	int branch = 0;
 
-	if (isequal(start, end)) {
+	if (!memcmp(start, end, numel * sizeof(int))) {
 		markEnd[nownum] = true;
 	}
 	else {
-		for (int i = 1; i <= *start; i++) {
-			for (int j = 1; j <= *start; j++) {
-
+		for (int i = 0; i < numel; i++) {
+			for (int j = 0; j < numel; j++) {
+				//从起始瓶子i倒出到目标瓶子j
 				int a = start[i], b = start[j];
-				if (i == j || start[i] == 0 || start[j] == max[j]) {
+				if (i == j || start[i] == 0 || start[j] == max[j]) { //如果i=j,或被倒出瓶子为空或倒往的瓶子为满,则不需要倾倒
 					continue;
 				}
 				else if (start[i] > max[j] - start[j]) {
@@ -126,17 +127,12 @@ int move(int *start, int length, int nownum) { //length为当前path的长度,最短为1,
 }
 
 int addPath(int *start, int nownum, int number, int length) {
-	path[nownum][0] = length + 1;
-	if (length&&number != nownum) {
-		for (int i = 0; i < (*start + 1)*length + 2; i++) {
-			path[number][i] = path[nownum][i];
-		}
+	path[nownum][0] = length + 1; //记录路径的长度
+	if (length && number != nownum) {
+		memcpy(path[number], path[nownum], (numel*length + 2) * sizeof(int));
 	}
-
-	for (int i = 0; i <= *start; i++) {
-		path[number][1] = number;  //可以放for前面
-		path[number][(*start + 1)*length + i + 2] = start[i];
-	}
+	path[number][1] = number;     //记录路径编号
+	memcpy(&path[number][numel*length + 2], start, numel * sizeof(int));
 	length++;
 	return length;
 }
@@ -144,8 +140,8 @@ int addPath(int *start, int nownum, int number, int length) {
 bool contain(int *start, int number, int length) {
 	bool mark;
 	for (int i = 0; i < length; i++) {
-		for (int j = 1; j <= *start; j++) {
-			if (path[number][(*start + 1)*i + j + 2] == start[j]) {
+		for (int j = 0; j < numel; j++) {
+			if (path[number][numel*i + j + 2] == start[j]) {
 				mark = true;
 			}
 			else {
@@ -160,42 +156,72 @@ bool contain(int *start, int number, int length) {
 	return false;
 }
 
-bool isequal(int *start, int  *end) {
-	for (int i = 1; i <= *end; i++) {
-		if (start[i] != end[i]) {
-			return false;
+void printSinPath(int number, FILE* fp) {
+	for (int i = 0; i < path[number][0]; i++) {  //路径长度
+		for (int j = 0; j < numel; j++) {
+			printf("%4d ", path[number][numel*i + 2 + j]);
+			fprintf(fp, "%4d ", path[number][numel*i + 2 + j]);
 		}
+		printf("\n");
+		fprintf(fp, "\n");
 	}
-
-	return true;
+	printf("\n\n");
+	fprintf(fp, "\n\n");
 }
 
 void printPath() {
-	int endPath = 0;
-	int numel = path[number][2];                    //记录瓶子数
+	int numPath = 0;
 	FILE *fp = fopen("path.txt", "w");
 	for (int i = 0; i <= number; i++) {             //路径数
 		if (markEnd[i]) {
-			endPath++;
-			printf("第%d条完成路径,序号为%d\n步数为%d\n", endPath, path[i][1],path[i][0] - 1);
-			fprintf(fp, "第%d条完成路径,序号为%d\n步数为%d\n", endPath, path[i][1], path[i][0] - 1);
-			for (int j = 0; j < path[i][0]; j++) {  //路径长度
-				for (int k = 0; k < numel; k++) {
-					printf("%4d ", path[i][(numel + 1)*j + 3 + k]);
-					fprintf(fp, "%4d ", path[i][(numel + 1)*j + 3 + k]);
-				}
-				printf("\n");
-				fprintf(fp, "\n");
+			numPath++;
+			printf("第%d条完成路径,序号为%d\n步数为%d\n", numPath, path[i][1], path[i][0] - 1);
+			fprintf(fp, "第%d条完成路径,序号为%d\n步数为%d\n", numPath, path[i][1], path[i][0] - 1);
+			printSinPath(i, fp);
+		}
+	}
+	fclose(fp);
+}
+
+void searchPath(bool set) {
+	int numPath = 0;                                //记录最短或最长路径的条数
+	FILE* fp = fopen("searchPath.txt", "w");
+
+	int n = path[0][0];
+	for (int i = 0; i < number; i++) {
+		if (set) {
+			if (n > path[i][0]) {
+				n = path[i][0];
 			}
-			printf("\n\n");
-			fprintf(fp, "\n\n");
+		}
+		else {
+			if (n < path[i][0]) {
+				n = path[i][0];
+			}
+		}
+	}
+
+	if (set) {
+		printf("最短路径为:\n");
+		fprintf(fp, "最短路径为:\n");
+	}
+	else {
+		printf("最长路径为:\n");
+		fprintf(fp, "最长路径为:\n");
+	}
+
+	for (int i = 0; i <= number; i++) {
+		if (path[i][0] == n) {
+			numPath++;
+			printf("\n第%d条要求路径,序号为%d\n步数为%d\n", numPath, path[i][1], path[i][0] - 1);
+			fprintf(fp, "\n第%d条完成路径,序号为%d\n步数为%d\n", numPath, path[i][1], path[i][0] - 1);
+			printSinPath(i, fp);
 		}
 	}
 	fclose(fp);
 }
 
 bool noRepeat() {
-	int numel = path[0][2] + 1;
 	bool mark = true;
 	for (int i = 0; i <= number; i++) {
 		for (int j = 0; j <= number; j++) {
@@ -206,74 +232,12 @@ bool noRepeat() {
 				continue;
 			}
 			else {
-				mark = true;
 				int length = path[i][0];
-				for (int k = 2; k < (2 + numel*length); k++) {
-					if (path[i][k] != path[j][k]) {
-						mark = false;
-						break;
-					}
-				}
-				if (mark) {
-					return true;
+				if (!memcmp(&path[i][2], &path[j][2], numel*length * sizeof(int))) {
+					return false;
 				}
 			}
 		}
 	}
-
-	return false;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-int * get_bottles() {
-	int num = 256; //设置读入数据初始容量
-	int *bottles = malloc(num * sizeof(int));
-	char ch = getchar();
-
-	int i = 1;  //保留i=0时 设置bottles所含数据数量
-	int temp = 0;
-	while (ch != '\n') {
-		if (i > num) {
-			num *= 2;
-			bottles = realloc(bottles, num * sizeof(int));
-			if (num > 1024) {
-				printf("数据量超过上限");
-				break;
-			}
-		}
-
-		if (ch == ' ') {
-			temp = 0;
-			i++;
-		}
-		else {
-			ch -= '0';
-			temp = temp * 10 + ch;
-			bottles[i] = temp;
-		}
-
-		ch = getchar();
-	}
-	bottles[0] = i;  //设置bottles数量
-	return bottles;
-}
-
-bool check(int a, int b, int c) {
-	if (a == b&&b == c) {
-		return false;
-	}
-	else {
-		printf("\n输入数据有误,请重新输入\n");
-		return true;
-	}
+	return true;
 }
