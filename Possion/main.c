@@ -1,6 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define NUMBER_ELM 4
-#define WIDTH 4096
+#define WIDTH 409600
 #include<stdio.h>
 #include<stdbool.h>
 #include<stdlib.h>
@@ -12,23 +12,32 @@ int addPath(int *start, int temp, int number, int length);
 int move(int *start, int length, int nownum);
 bool contain(int *start, int number, int length);
 void printSinPath(int i, FILE* fp);
-void printPath(int minlen);
+void printPath();
 
 
 int path[WIDTH][512] = { 0 };
+int map[WIDTH] = { 0 };           //记录所有路径状态
 bool markEnd[WIDTH] = { false };  //记录达成要求的路径
-int mark[WIDTH];                  //记录达成要求路径的下标
 int numel = NUMBER_ELM;           //瓶子总数
-int minlen = 11;                  //设置最多10步
+int minlen = 20;                  //设置最多19步
 
 int max[NUMBER_ELM] = { 12,10,6,3};
-int start[NUMBER_ELM] = { 12,0,0 ,0};
-int end[NUMBER_ELM] = { 3,3,3,3 };
+int start[NUMBER_ELM] = { 12,0,0,0};
+int end[NUMBER_ELM] = { 4,4,4,0 };
+//int max[NUMBER_ELM] = { 25,13,7,4,2 };
+//int start[NUMBER_ELM] = { 25,0,0,0,0 };
+//int end[NUMBER_ELM] = { 5,5,5,5,5};
 //int end[NUMBER_ELM] = {4,4,0 };
 
 int main() {
-	int minlen = goPath(start);
-	printPath(minlen);
+	int min = goPath(start);
+	printPath();
+	if (min) {
+		printf("\n有解\n");
+	}
+	else {
+		printf("\n无解\n");
+	}
 	system("pause");
 	return 0;
 }
@@ -52,6 +61,9 @@ void findtmp(int *tmpnum, int* tmplen) {
 
 int goPath(int *start) {
 	addPath(start, 0, 0, 0);
+	memcpy(map + 1, start, numel * sizeof(int));
+	(*map)++;
+
 	int min = 0;//记录最短路径
 	bool mark = true;
 	while (mark) {
@@ -63,9 +75,10 @@ int goPath(int *start) {
 		for (int i = 0; i <= tmpnum; i++) {
 			int length = path[i][0];
 			if (length == tmplen && !markEnd[i]) {
-				int ini[10];
+				int *ini = (int*)malloc(NUMBER_ELM * sizeof(int));
 				memcpy(ini, &path[i][(length - 1)*numel + 2], numel * sizeof(int));
 				branch = move(ini, length, i);
+				free(ini);
 			}
 
 			if (!branch) {
@@ -94,7 +107,7 @@ int goPath(int *start) {
 			}
 		}
 	}
-	return minlen;
+	return min;
 }
 
 int move(int *start, int length, int nownum) { //length为当前path的长度,最短为1,nownum为当前path的序号,最小为0
@@ -117,6 +130,8 @@ int move(int *start, int length, int nownum) { //length为当前path的长度,最短为1,
 				}
 
 				if (start[i] != a && !contain(start, nownum, length)) {
+					memcpy(&map[1 + (*map-1)*numel*sizeof(int)], start, numel * sizeof(int));
+					(*map)++;
 					if (!branch) {
 						addPath(start, nownum, nownum, length);
 					}
@@ -159,13 +174,18 @@ int addPath(int *start, int nownum, int number, int length) {
 }
 
 bool contain(int *start, int number, int length) {
-	for (int i = 0; i <= number; i++) {
-		for (int j = 0; j < length; j++) {
-			if (!memcmp(&path[number][numel*j + 2], start, numel * sizeof(int))) {
+	for (int i = 0; i < *map; i++) {
+		if (!memcmp(&map[1 + i*numel * sizeof(int)], start, numel * sizeof(int))) {
+			return true;
+		}
+	}
+	/*for (int i = 0; i <= number; i++) {
+		for (int j = 0; j < length - 1; j++) {
+			if (!memcmp(&path[i][numel*j + 2], start, numel * sizeof(int))) {
 				return true;
 			}
 		}
-	}
+	}*/
 	return false;
 }
 
@@ -178,35 +198,18 @@ void printSinPath(int number, FILE* fp) {
 		printf("\n");
 		fprintf(fp, "\n");
 	}
-	printf("\n\n");
-	fprintf(fp, "\n\n");
+	printf("\n");
+	fprintf(fp, "\n");
 }
 
-void printPath(int minlen) {
+void printPath() {
 	int numPath = 0;
-	//int k = 0; //记录有效路径数
-	//for (int i = 0; i < WIDTH; i++) {
-	//	if (markEnd[i]) {
-	//		mark[++k] = i;
-	//	}
-	//}
-	//*mark = k;
-	//k = 0;     //记录最短路径数
-
 	FILE* fpmin = fopen("minPath.txt", "w");
-	/*for (int i = 1; i <= *mark; i++) {
-		if (path[mark[i]][0] == minlen) {
-			numPath++;
-			printf("\n第%d条最短路径,步数为%d\n", numPath, path[*(mark + i)][0] - 1);
-			fprintf(fpmin, "\n第%d条最短路径,步数为%d\n", numPath, path[*(mark + i)][0] - 1);
-			printSinPath(mark[i], fpmin);
-		}
-	}*/
 	for (int i = 0; i < WIDTH; i++) {
 		if (path[i][0]) {
 			numPath++;
-			printf("\n第%d条最短路径,步数为%d\n", numPath, path[i][0] - 1);
-			fprintf(fpmin, "\n第%d条最短路径,步数为%d\n", numPath, path[i][0] - 1);
+			printf("第%d条最短路径,步数为%d\n", numPath, path[i][0] - 1);
+			fprintf(fpmin, "第%d条最短路径,步数为%d\n", numPath, path[i][0] - 1);
 			printSinPath(i, fpmin);
 		}
 	}
