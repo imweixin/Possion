@@ -1,5 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
-#define NUMBER_ELM 4
+#define NUMBER_ELM 5             //定义瓶子数
 #define WIDTH 409600
 #include<stdio.h>
 #include<stdbool.h>
@@ -9,6 +9,7 @@
 int goPath(int *start);
 int findPath();
 int addPath(int *start, int temp, int number, int length);
+void addMap(int *start, int length);
 int move(int *start, int length, int nownum);
 bool contain(int *start, int number, int length);
 void printSinPath(int i, FILE* fp);
@@ -19,15 +20,11 @@ int path[WIDTH][512] = { 0 };
 int map[WIDTH] = { 0 };           //记录所有路径状态
 bool markEnd[WIDTH] = { false };  //记录达成要求的路径
 int numel = NUMBER_ELM;           //瓶子总数
-int minlen = 20;                  //设置最多19步
+int minlen = 20;                  //设置初始最多步数
 
-int max[NUMBER_ELM] = { 12,10,6,3};
-int start[NUMBER_ELM] = { 12,0,0,0};
-int end[NUMBER_ELM] = { 4,4,4,0 };
-//int max[NUMBER_ELM] = { 25,13,7,4,2 };
-//int start[NUMBER_ELM] = { 25,0,0,0,0 };
-//int end[NUMBER_ELM] = { 5,5,5,5,5};
-//int end[NUMBER_ELM] = {4,4,0 };
+int max[NUMBER_ELM] = {24,22,19,8,4};
+int start[NUMBER_ELM] = {24,0,0,0,0};
+int end[NUMBER_ELM] = {9,6,3,2,4};
 
 int main() {
 	int min = goPath(start);
@@ -46,6 +43,7 @@ void findtmp(int *tmpnum, int* tmplen) {
 	for (int i = 0; i < WIDTH; i++) {
 		if (path[i][0]) {
 			if (path[i][0] > minlen) {
+				printf("%d\t%d\t\n", i,path[i][0]-1);
 				path[i][0] = 0;
 				markEnd[i] = false;
 			}
@@ -59,10 +57,10 @@ void findtmp(int *tmpnum, int* tmplen) {
 	}
 }
 
+
 int goPath(int *start) {
 	addPath(start, 0, 0, 0);
-	memcpy(map + 1, start, numel * sizeof(int));
-	(*map)++;
+	addMap(start, 0);
 
 	int min = 0;//记录最短路径
 	bool mark = true;
@@ -130,8 +128,7 @@ int move(int *start, int length, int nownum) { //length为当前path的长度,最短为1,
 				}
 
 				if (start[i] != a && !contain(start, nownum, length)) {
-					memcpy(&map[1 + (*map-1)*numel*sizeof(int)], start, numel * sizeof(int));
-					(*map)++;
+					addMap(start, length);
 					if (!branch) {
 						addPath(start, nownum, nownum, length);
 					}
@@ -148,6 +145,14 @@ int move(int *start, int length, int nownum) { //length为当前path的长度,最短为1,
 	}
 
 	return branch;
+}
+
+void addMap(int *start, int length) {
+	map[1 + *map*(numel + 1)] = length;
+	if (memcmp(start, end, numel * sizeof(int))) {
+		memcpy(&map[2 + *map*(numel+1)], start, numel * sizeof(int));
+		(*map)++;
+	}
 }
 
 int findPath() {                     //找出第一个length为零的path用来添加新path
@@ -175,17 +180,10 @@ int addPath(int *start, int nownum, int number, int length) {
 
 bool contain(int *start, int number, int length) {
 	for (int i = 0; i < *map; i++) {
-		if (!memcmp(&map[1 + i*numel * sizeof(int)], start, numel * sizeof(int))) {
+		if (map[1 + i*(numel + 1)]!=length&&!memcmp(&map[2 + i*(numel+1)], start, numel * sizeof(int))) { //列数不同且内容相等
 			return true;
 		}
 	}
-	/*for (int i = 0; i <= number; i++) {
-		for (int j = 0; j < length - 1; j++) {
-			if (!memcmp(&path[i][numel*j + 2], start, numel * sizeof(int))) {
-				return true;
-			}
-		}
-	}*/
 	return false;
 }
 
