@@ -1,6 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
-#define NUMBER_ELM 5             //定义瓶子数
-#define WIDTH 409600
+#define NUMBER_ELM 4             //定义瓶子数
+#define WIDTH 102400
 #include<stdio.h>
 #include<stdbool.h>
 #include<stdlib.h>
@@ -11,20 +11,20 @@ int findPath();
 int addPath(int *start, int temp, int number, int length);
 void addMap(int *start, int length);
 int move(int *start, int length, int nownum);
-bool contain(int *start, int number, int length);
+bool contain(int *start, int length);
 void printSinPath(int i, FILE* fp);
 void printPath();
 
 
-int path[WIDTH][512] = { 0 };
+int path[WIDTH][512] = { 0 };     //列数
 int map[WIDTH] = { 0 };           //记录所有路径状态
 bool markEnd[WIDTH] = { false };  //记录达成要求的路径
 int numel = NUMBER_ELM;           //瓶子总数
 int minlen = 20;                  //设置初始最多步数
 
-int max[NUMBER_ELM] = {24,22,19,8,4};
-int start[NUMBER_ELM] = {24,0,0,0,0};
-int end[NUMBER_ELM] = {9,6,3,2,4};
+int max[NUMBER_ELM] = {12,10,6,3};
+int start[NUMBER_ELM] = {12,0,0,0};
+int end[NUMBER_ELM] = {4,4,4,0};
 
 int main() {
 	int min = goPath(start);
@@ -43,7 +43,6 @@ void findtmp(int *tmpnum, int* tmplen) {
 	for (int i = 0; i < WIDTH; i++) {
 		if (path[i][0]) {
 			if (path[i][0] > minlen) {
-				printf("%d\t%d\t\n", i,path[i][0]-1);
 				path[i][0] = 0;
 				markEnd[i] = false;
 			}
@@ -127,7 +126,7 @@ int move(int *start, int length, int nownum) { //length为当前path的长度,最短为1,
 					start[i] = 0;
 				}
 
-				if (start[i] != a && !contain(start, nownum, length)) {
+				if (start[i] != a && !contain(start, length)) {
 					addMap(start, length);
 					if (!branch) {
 						addPath(start, nownum, nownum, length);
@@ -178,7 +177,7 @@ int addPath(int *start, int nownum, int number, int length) {
 	return length;
 }
 
-bool contain(int *start, int number, int length) {
+bool contain(int *start, int length) {
 	for (int i = 0; i < *map; i++) {
 		if (map[1 + i*(numel + 1)]!=length&&!memcmp(&map[2 + i*(numel+1)], start, numel * sizeof(int))) { //列数不同且内容相等
 			return true;
